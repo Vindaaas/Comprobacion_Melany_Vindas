@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Ventas</title>
+
+    <!--CSS-->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        form input {
+            width: calc(33% - 10px);
+            padding: 8px;
+            box-sizing: border-box;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        form button {
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        .total {
+            margin-top: 10px;
+            font-size: 1.1em;
+        }
+
+        .total span {
+            font-weight: bold;
+        }
+
+        button#limpiarVentas {
+            margin-top: 10px;
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button#limpiarVentas:hover {
+            background-color: #bd2130;
+        }
+        
+    </style>
+
+ <!--HTML-->
+<body>
+    <h1>Gestión de Ventas</h1>
+
+    <!--Formulario-->
+    <form id="venta-form">
+        <div class="form-group">
+            <label for="nombreProducto">Nombre del Producto:</label>
+            <input type="text" id="nombreProducto" required> 
+        </div>
+        <div class="form-group">
+            <label for="precioUnitario">Precio Unitario:</label>
+            <input type="number" id="precioUnitario" required>
+        </div>
+        <div class="form-group">
+            <label for="cantidadVendida">Cantidad Vendida:</label>
+            <input type="number" id="cantidadVendida" required>
+        </div>
+        <button type="submit">Registrar Venta</button> <!--Boton para registrar cada venta producida y mostrarla en la tabla de gestion-->
+        <span class="error" id="error-message"></span>
+    </form>
+
+    <!--Tabla de Gestion-->
+    <table>
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Precio Unitario</th>
+                <th>Cantidad</th>
+                <th>Total de la Venta</th>
+                <th>Fecha de la Venta</th>
+            </tr>
+        </thead>
+        <tbody id="ventas-lista"></tbody>
+    </table>
+
+
+    <!--Total global de las ventas-->
+    <p class="total-global">Total Global: <span id="totalGlobal">$0.00</span></p>
+
+    <!--Boton para limpiar la tabla de gestion-->
+    <button id="limpiarVentas">Limpiar Ventas</button>
+
+
+
+
+    <!--JS-->
+    <script>
+        //Seleccion de elementos, botones, encontrar errores, form de ventas, botones...
+        const form = document.getElementById('venta-form');
+        const listaVentas = document.getElementById('ventas-lista');
+        const totalGlobalEl = document.getElementById('totalGlobal');
+        const limpiarVentasBtn = document.getElementById('limpiarVentas');
+        const errorMessage = document.getElementById('error-message');
+        
+        let ventas = JSON.parse(localStorage.getItem('ventas')) || [];
+
+        //Actualizar la tabla y el total global
+        function actualizarVista() {
+            listaVentas.innerHTML = '';
+            let totalGlobal = 0;
+
+            ventas.forEach((venta, index) => {
+                const fila = document.createElement('tr');
+
+                const precioTotal = (venta.precio * venta.cantidad).toFixed(2);
+                totalGlobal += parseFloat(precioTotal);
+
+                fila.innerHTML = `
+                    <td>${venta.producto}</td>
+                    <td>${venta.cantidad}</td>
+                    <td>$${venta.precio.toFixed(2)}</td>
+                    <td>$${precioTotal}</td>
+                    <td>${venta.fecha}</td>
+                    <td><button onclick="eliminarVenta(${index})">Eliminar</button></td>
+                `;
+                listaVentas.appendChild(fila);
+            });
+
+            totalGlobalEl.textContent = `$${totalGlobal.toFixed(2)}`;
+        }
+
+        // Registrar una nueva venta
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            errorMessage.textContent = '';
+
+            const producto = document.getElementById('nombreProducto').value.trim();
+            const precio = parseFloat(document.getElementById('precioUnitario').value);
+            const cantidad = parseInt(document.getElementById('cantidadVendida').value, 10);
+
+            if (!producto || isNaN(precio) || isNaN(cantidad) || precio <= 0 || cantidad <= 0) {
+                errorMessage.textContent = 'Por favor, ingresa datos válidos.';
+                return;
+            }
+
+            const nuevaVenta = {
+                producto,
+                precio,
+                cantidad,
+                fecha: new Date().toLocaleString()
+            };
+
+            ventas.push(nuevaVenta);
+            localStorage.setItem('ventas', JSON.stringify(ventas));
+            actualizarVista();
+
+            form.reset();
+        });
+
+        // Eliminar una venta
+        function eliminarVenta(index) {
+            ventas.splice(index, 1);
+            localStorage.setItem('ventas', JSON.stringify(ventas));
+            actualizarVista();
+        }
+
+        // Limpiar todas las ventas
+        limpiarVentasBtn.addEventListener('click', () => {
+            ventas = [];
+            localStorage.removeItem('ventas');
+            actualizarVista();
+        });
+
+        // Cargar datos iniciales al iniciar la página
+        actualizarVista();
+    </script>
+</body>
+</html>
